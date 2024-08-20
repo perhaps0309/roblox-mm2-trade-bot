@@ -1,0 +1,443 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Test</title>
+
+    <style>
+        .modal-section {
+            transition: transform 0.3s ease-in-out;
+            transform: translateX(0);
+            padding-bottom: 40px; /* Increased padding at the bottom */
+        }
+        
+        .modal-button-link {
+            display: block; 
+            width: 350px; 
+            text-align: center; 
+            margin: 10px auto; /* Centering the button horizontally */
+            text-decoration: none;
+        }
+    
+        .slide-out-left {
+            transform: translateX(-100%);
+        }
+    
+        .slide-in-right {
+            transform: translateX(100%);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-10px); }
+            to   { transform: translateY(0); }
+        }
+
+        .notification {
+            position: relative;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 3px;
+            box-shadow: 0px 2px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 300px;
+            animation: fadeIn 0.3s ease, slideDown 0.3s ease;
+            opacity: 0;  /* Initiate with 0 opacity to sync with fadeIn animation */
+            transform: translateY(-10px);  /* Starting position for slideDown animation */
+
+            max-height: 100px;
+            overflow: hidden;
+            transition: opacity 0.5s; 
+            opacity: 1;
+        }
+
+        .notification .notification-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .notification .title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .notification .message {
+            font-size: 14px;
+        }
+
+        .notification .close-btn {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        /* Different types of notifications */
+        .notification.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .notification.warning {
+            background-color: #ffeeba;
+            color: #856404;
+        }
+
+        .notification.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        #serverConfirmationStatus {
+            opacity: 0; /* Start with the text hidden */
+            animation-name: fadeIn;
+            animation-duration: 1s; /* Or however long you want the fade-in effect to last */
+            animation-fill-mode: forwards; /* Ensures the text remains visible after the animation completes */
+        }
+    </style>
+</head>
+
+<html>
+    <div id="notificationContainer" style="position: fixed; top: 10px; right: 10px;"></div>
+
+</html>
+
+<script>
+    var content = `
+    <div id="robloxModal" style="display: block; z-index: 9999; background-color: #ffffff; padding: 30px 40px; border-radius: 5px; max-width: 500px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1); overflow: hidden;">
+        <!-- Initial Section -->
+        <div id="initialSection" class="modal-section">
+            <img src="" alt="Your Logo" style="width: 100px; display: block; margin: -25px auto;">
+            <h2 style="font-size: 24px; margin: 20px 0;">Which account will receive the items?</h2>
+            
+            <div style="width: 250px; margin: 0 auto; position: relative; left: -10px;">
+                <label id="searchLabel" for="robloxUsername" style="display: block; color: gray; text-align: left;">Username</label>
+                <input type="text" id="robloxUsername" placeholder="perhapsbutinroblox" style="padding: 10px; width: 100%; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 20px;">
+            </div>
+              
+            
+            <button onclick="search()" style="padding: 15px 130px; background-color: #4285f4; color: #ffffff; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s;">Search</button>
+
+        </div>
+
+        <!-- Verification Section -->
+        <div id="verificationSection" style="display: none;" class="modal-section">
+            <h3 style="margin-bottom: -5px;">Is this your account?</h3>
+            <p style="color: grey; margin-bottom: 15px;">It cannot be changed once confirmed!</p>
+            
+            <img id="robloxProfileIcon" src="" alt="Roblox Profile" style="width: 80px; height: 80px; border-radius: 50%; background-color: #e1e1e1; margin: 0 auto; margin-bottom: -5px;">
+            
+            <div id="nameSection" style="margin-bottom: 30px;">
+                <h2 id="displayNameText"; style="color: green; margin: 0px 0">displayName</h2>
+                <p id="robloxUsernameText"; style="color: grey; font-size: 15px; margin: 0">(@robloxUsername)</p>
+            </div>
+            
+            <div id="serverConfirmationStatus" style="text-align: center; margin-bottom: 15px; color: gray"></div>
+            <button onclick="confirm()" style="width: 320px; padding: 10px 0; background-color: #4285f4; color: #ffffff; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; font-size: 18px; margin-bottom: 10px; text-align: center;">YES! THAT'S MY ACCOUNT!</button>
+            
+            <button onclick="restartModal()" style="width: 320px; padding: 10px 0; background-color: #ffffff; color: #4285f4; border: 2px solid #4285f4; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; font-size: 18px; text-align: center;">NO! THAT'S NOT IT!</button>
+        </div>
+
+        <p style="position: absolute; bottom: -3px; left: 10px; color: grey; font-size: 11px;">Account: <span id="chosenUsernameSpan">Unknown</span></p>
+
+        <!-- Confirmation Section -->
+        <div id="confirmationSection" style="display: none;" class="modal-section">
+            <h3 style="margin-bottom: 5px;">ATTENTION!</h3>
+            <hr style="border: none; height: 1px; background-color: grey; margin: 15px 0;">
+            <p style="color: grey; margin-bottom: 10px;">You must send the bot a friend request to verify your ownership of the account!</p>
+            <p><strong style="color: red;">NOTE:</strong> Even if you've previously sent a friend request to the bot, you will still need to add it again.</p>
+            <br>
+            
+            <button onclick="openInNewTab('')"; style="width: 350px; padding: 10px 0; background-color: #4285f4; color: #ffffff; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; font-size: 18px; margin-bottom: 10px; text-align: center;">
+                CLICK HERE TO GO TO THE BOT'S PROFILE
+            </button>
+            
+            <button onclick="sentFriendRequest()" style="width: 350px; padding: 10px 0; background-color: #ffffff; color: #4285f4; border: 2px solid #4285f4; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; font-size: 18px; text-align: center;">
+                I SENT A FRIEND REQUEST
+            </button>
+        </div>
+
+        <div id="collectionSection" style="display: none;" class="modal-section">
+            <img src="" alt="Your Logo" style="width: 100px; display: block; margin: -25px auto;">
+            <h2 style="font-size: 24px; margin: 20px 0;">Collect your items!</h2>
+            <p><strong style="color: red;">NOTE:</strong> If you're using a mobile device, please ensure that you're logged in to your Roblox account in both the browser and the app!</p>
+            
+            <a class="modal-button-link">
+                <button onclick="openInNewTab('https://www.youtube.com/watch?v=KH2P_VG8dc4')"; style="padding: 10px 0; background-color: #4285f4; color: #ffffff; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; font-size: 18px; text-align: center; width: 100%;">
+                    VIEW TUTORIAL
+                </button>
+            </a>
+            
+            <a class="modal-button-link">
+                <button onclick="openInNewTab('https://www.roblox.com/games/142823291?privateServerLinkCode=01894132962308826101829367405162')"; style="padding: 10px 0; background-color: #ffffff; color: #4285f4; border: 2px solid #4285f4; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; font-size: 18px; text-align: center; width: 100%;">
+                    JOIN PRIVATE SERVER
+                </button>
+            </a>
+        </div>
+
+    </div>
+    `;
+
+    var content1 = `<p>Our automated delivery system will assist you in receiving your items!</p>
+    <br>
+<p>If you're able to claim your items on this device, a backup link will be sent to your email.</p>
+<p>Please keep this window open until you've claimed your items or received the backup link in your email.</p>
+<br>
+<p>Before starting the claim process, remeber to log in to your ROBLOX account on both your browser (Chrome, Safari, etc.) and the ROBLOX app (for mobile users),</p>
+<br>
+<p>To begin the process, simply enter your username below!</p>`;
+
+    Shopify.Checkout.OrderStatus.addContentBox(content1, content);
+
+    var userId = 0;
+    async function search() {
+    const usernameInput = document.getElementById('robloxUsername');
+    const searchLabel = document.getElementById('searchLabel');
+    const username = usernameInput.value;
+
+    document.getElementById('chosenUsernameSpan').textContent = username;
+    
+    // Initial searching message
+    searchLabel.textContent = `Searching for ${username}`;
+    
+    // Dots animation
+    let dotsCount = 0;
+    const dotsInterval = setInterval(() => {
+        if (dotsCount < 3) {
+            searchLabel.textContent += ".";
+            dotsCount++;
+        } else {
+            searchLabel.textContent = `Searching for ${username}`;
+            dotsCount = 0;
+        }
+    }, 250);
+
+    try {
+        const userResponse = await fetch('https://users.roproxy.com/v1/usernames/users', {
+            method: 'POST',
+            headers: {
+                'accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                usernames: [username],
+                excludeBannedUsers: true
+            })
+        });
+
+        const userData = await userResponse.json();
+
+        if (userData.data && userData.data.length > 0) {
+            userId = userData.data[0].id;
+
+            // Fetch the profile icon
+            const iconResponse = await fetch(`https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds=${userId}&size=352x352&format=Png&isCircular=false`);
+            const iconData = await iconResponse.json();
+
+            if (iconData.data && iconData.data.length > 0) {
+                const imageUrl = iconData.data[0].imageUrl;
+                document.getElementById('robloxProfileIcon').src = imageUrl;
+            }
+
+            document.getElementById('displayNameText').textContent = userData.data[0].displayName;
+            document.getElementById('robloxUsernameText').textContent = `(@${userData.data[0].requestedUsername})`;
+
+            clearInterval(dotsInterval); // Stop the dots animation
+            searchLabel.innerHTML = `Found <span style="color: green">${username}</span>!`;
+
+            // Simulate a short delay before transitioning to next modal
+            setTimeout(() => {
+                transitionToVerification();
+            }, 2000);
+        } else {
+            throw new Error('User not found');
+        }
+    } catch (error) {
+        clearInterval(dotsInterval); // Stop the dots animation
+        searchLabel.innerHTML = `${username} not found.`;
+        searchLabel.style.color = "red";
+    }
+}
+        function transitionToVerification() {
+            const initialSection = document.getElementById('initialSection');
+            const verificationSection = document.getElementById('verificationSection');
+            
+            // Slide out the initial section to the left
+            initialSection.classList.add('slide-out-left');
+
+            setTimeout(() => {
+                initialSection.style.display = 'none';
+                verificationSection.style.display = 'block';
+                verificationSection.classList.add('slide-in-right');
+
+                showNotification("success", "SUCCESS!", `Successfully found ${document.getElementById('robloxUsername').value}!`)
+                
+                setTimeout(() => {
+                    verificationSection.classList.remove('slide-in-right');
+                }, 50);
+            }, 300); // This timeout value should match or be a little more than the transition duration in the CSS
+        }
+
+        function restartModal() {
+            const initialSection = document.getElementById('initialSection');
+            const verificationSection = document.getElementById('verificationSection');
+
+            verificationSection.classList.add('slide-out-left');
+            
+            setTimeout(() => {
+                verificationSection.style.display = 'none';
+                initialSection.style.display = 'block';
+                initialSection.classList.add('slide-in-right');
+                searchLabel.textContent = `Username`;
+                
+                setTimeout(() => {
+                    initialSection.classList.remove('slide-in-right');
+                    // Reset the slide-out for both sections for future transitions
+                    initialSection.classList.remove('slide-out-left');
+                    verificationSection.classList.remove('slide-out-left');
+                }, 50);
+            }, 300);
+        }
+
+        function transitionToConfirmation() {
+            const verificationSection = document.getElementById('verificationSection');
+            const confirmationSection = document.getElementById('confirmationSection');
+
+            // Slide out the verification section to the left
+            verificationSection.classList.add('slide-out-left');
+
+            setTimeout(() => {
+                verificationSection.style.display = 'none';
+                confirmationSection.style.display = 'block';
+                confirmationSection.classList.add('slide-in-right');
+
+                showNotification("warning", "WARNING!", 'Please verify your ownership of the account by sending a friend request to the bot!')
+
+                setTimeout(() => {
+                    confirmationSection.classList.remove('slide-in-right');
+                }, 50);
+            }, 300); 
+        }
+
+        function sendRequestToBot(orderId) {
+    // Construct the URL with provided parameters
+    const url = `https://tagHandler.php`;
+    const serverConfirmationStatus = document.getElementById('serverConfirmationStatus');
+
+    // Set the "confirming" status
+    serverConfirmationStatus.textContent = "Confirming with the server...";
+
+    // Send a POST request
+    fetch(url,{
+        method: "POST",
+        body: `userid=${userId}&orderId=${orderId}`,
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+    })
+    .then(response => response.json()) // Assuming the server responds with JSON
+    .then(data => {
+        if (data.errors) {
+            serverConfirmationStatus.textContent = `Failed to confirm with server, ${data.errors}. Please contact staff at https://discord.gg/jzjfMXYjKE!`;
+            showNotification("error", "ERROR!", `There was an error while sending the request to the bot, please join https://discord.gg/jzjfMXYjKE for help! ${data.errors}`);
+            return; // Stop the function here
+        }
+        // If necessary, handle a successful response here.
+        // You might want to update the serverConfirmationStatus or transition to another state.
+
+        transitionToConfirmation();
+    })
+    .catch(error => {
+        console.error('There was an error!', error);
+        serverConfirmationStatus.textContent = `Failed to confirm with server, ${error}. Please contact staff at https://discord.gg/jzjfMXYjKE!`;
+        showNotification("error", "ERROR!", 'There was an error while sending the request to the bot, please join https://discord.gg/jzjfMXYjKE for help!');
+    });
+}
+
+function confirm() {
+    // Transition to the confirmation section
+
+    // Send a request to the bot
+    sendRequestToBot(Shopify.checkout.order_id);
+}
+
+        function sentFriendRequest() {
+            fetch("https://tagHandler.php?setPendingRequests=true",{
+                method: "GET",
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            })
+
+            transitionToCollection();
+        }
+
+        function transitionToCollection() {
+            const confirmationSection = document.getElementById('confirmationSection');
+            const collectionSection = document.getElementById('collectionSection');
+            
+            confirmationSection.classList.add('slide-out-left');
+            
+            setTimeout(() => {
+                confirmationSection.style.display = 'none';
+                collectionSection.style.display = 'block';
+                collectionSection.classList.add('slide-in-right');
+                
+                setTimeout(() => {
+                    collectionSection.classList.remove('slide-in-right');
+                }, 50);
+            }, 300);
+        }
+
+        function openInNewTab(url) {
+            window.open(url, '_blank');
+        }
+
+        function showNotification(type, title, message) {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="title">${title}</span>
+            <span class="message">${message}</span>
+        </div>
+        <span class="close-btn">×</span>
+    `;
+
+    // Append the notification to the container
+    document.getElementById('notificationContainer').appendChild(notification);
+
+    // Add close event
+    notification.querySelector('.close-btn').addEventListener('click', function() {
+        closeNotification(notification);
+    });
+
+    // Automatically close after 6 seconds
+    setTimeout(() => {
+        closeNotification(notification);
+    }, 6000);
+}
+
+function closeNotification(notificationElement) {
+    notificationElement.style.opacity = '0';
+    setTimeout(() => {
+        notificationContainer.removeChild(notificationElement);
+    }, 500); // Also set to 2s to match the CSS transition
+}
+</script>
